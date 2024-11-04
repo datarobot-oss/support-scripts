@@ -38,3 +38,5 @@ scp -i ~/.ssh/your_key.pem /path/to/DataRobot/tools/db_restore_script_onprem.py 
  SSH to machine and execute the script using example above
  
 `ssh -i ~/.ssh/your_key.pem ubuntu@your.host.ip.address`
+
+_Please note: This script does not restore elasticsearch or any other components of datarobot_
