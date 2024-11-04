@@ -2,7 +2,7 @@
 
 Usage: Copy the script, please make sure to pass `DR_NAMESPACE` value as argument and the `BACKUP_LOCATION` which would be the backup directory that has been created to store backups
 
-Example: `python3 full-backup-script.py <my-test-namespace> /datarobot-backup`
+Example: `python3 full_backup_script.py <my-test-namespace> /datarobot-backup`
 
 Copy to host machine
 ```
