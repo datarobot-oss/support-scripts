@@ -157,7 +157,7 @@ def main(namespace, backup_location):
     if port_forward_pid:
         os.kill(int(port_forward_pid), 15)
 
-    tar_cmd = f"cd {backup_location} && tar -cf datarobot-mongo-backup-$(date +%F).tar -C {backup_location} mongodb"
+    tar_cmd = f"tar -cf datarobot-mongo-backup-$(date +%F).tar -C {backup_location} mongodb"
     subprocess.run(tar_cmd, shell=True, check=True)
 
 if __name__ == "__main__":
