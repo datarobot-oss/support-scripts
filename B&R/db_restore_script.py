@@ -171,9 +171,6 @@ def main(namespace, backup_location):
     if mongo_port_forward_pid:
         os.kill(int(mongo_port_forward_pid), 15)  # Send SIGTERM
 
-    patch_cmd_mongo = f'kubectl -n {namespace} patch secrets/pcs-mongo --patch-file="{backup_location}/secrets/pcs/pcs-mongo.json"'
-    subprocess.run(patch_cmd_mongo, shell=True, check=True)
-
     pg_password_cmd = f"kubectl -n {namespace} get secret pcs-postgresql -o jsonpath='{{.data.postgres-password}}' | base64 -d"
     pg_password = subprocess.check_output(pg_password_cmd, shell=True).decode().strip()
     os.environ['PGPASSWORD'] = pg_password
@@ -276,12 +273,6 @@ def main(namespace, backup_location):
     if pg_port_forward_pid:
         os.kill(int(pg_port_forward_pid), 15)
 
-    patch_cmd_pg = f'kubectl -n {namespace} patch secrets/pcs-postgresql --patch-file="{backup_location}/secrets/pcs/pcs-postgresql.json"'
-    try:
-        subprocess.run(patch_cmd_pg, shell=True, check=True)
-        print("Successfully patched the PostgreSQL secrets.")
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Failed to patch PostgreSQL secrets. Error: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
