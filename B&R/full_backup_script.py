@@ -145,7 +145,7 @@ def main(namespace, backup_location):
 
     os.makedirs(f"{backup_location}/mongodb", exist_ok=True)
 
-    mongodump_cmd = f"mongodump -vv --excludeCollection=config.system -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} -o {backup_location}/mongodb"
+    mongodump_cmd = f"mongodump -vv -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} -o {backup_location}/mongodb"
     dump_process = subprocess.Popen(mongodump_cmd, shell=True)
 
     while dump_process.poll() is None:
