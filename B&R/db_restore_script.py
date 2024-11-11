@@ -240,7 +240,7 @@ def main(namespace, backup_location):
     
         with tarfile.open(tar_file, "r") as tar:
             tar.extractall(path=os.path.join(backup_location, "pgsql"))
-            print(f"Extracted {tar_file} to {os.path.join(backup_location, "pgsql")}")
+            print(f"Extracted {tar_file} to {os.path.join(backup_location, 'pgsql')}")
     
     for db in os.listdir(os.path.join(backup_location, "pgsql")):
         db_path = os.path.join(backup_location, "pgsql", db)
