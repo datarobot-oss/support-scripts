@@ -188,11 +188,7 @@ def main(namespace, backup_location):
 
             check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d \| -f 1 | grep -qw {db}"
             db_exists = subprocess.run(check_db_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
-            if db_exists.returncode != 0:
-                create_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -c \"CREATE DATABASE {db};\""
-                subprocess.run(create_db_cmd, shell=True, check=True)
-                print(f"Database {db} created.")
+
 
             clean_sql_command = """
             DO \$\$ DECLARE
