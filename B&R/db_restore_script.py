@@ -23,10 +23,8 @@
 # SSH to machine where k8s cluster exists
 # ssh -i ~/.ssh/your_key.pem ubuntu@your.host.ip.address
 
-# Below script takes backup of of the following:
+# Below script takes restore the following:
 
-# Configuration
-# Secrets
 # PostgreSQL
 # MongoDB
 # Usage: Copy the script, please make sure to pass DR_NAMESPACE value as argument and the BACKUP_LOCATION which would be the backup directory that has been created to store backups
@@ -50,7 +48,6 @@ def extract_database_names(output):
     try:
         json_line = next(line for line in output.strip().splitlines() if line.strip().startswith("["))
         
-        # Parse the JSON line
         dbs = json.loads(json_line)
         db_names = [db['name'] for db in dbs]
         return db_names
@@ -141,9 +138,6 @@ def main(namespace, backup_location):
     os.environ['LOCAL_MONGO_PORT'] = '27018'
     os.environ['LOCAL_PGSQL_PORT'] = '54321'
 
-    # Step 2: Change to the backup location directory
-    os.chdir(backup_location)
-
     tar_file = subprocess.check_output("ls *mongo-backup*.tar", shell=True).decode().strip()
 
     subprocess.run(f"tar xf {tar_file} -C {backup_location}", shell=True, check=True)
@@ -189,7 +183,7 @@ def main(namespace, backup_location):
     tar_file = None
     for db in os.listdir(os.path.join(backup_location, "pgsql")):
         db_path = os.path.join(backup_location, "pgsql", db)
-        if os.path.isdir(db_path) and db not in ['postgres']:
+        if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             print(f"Cleaning up database: {db}")
 
             check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d \| -f 1 | grep -qw {db}"
@@ -250,7 +244,7 @@ def main(namespace, backup_location):
     
     for db in os.listdir(os.path.join(backup_location, "pgsql")):
         db_path = os.path.join(backup_location, "pgsql", db)
-        if os.path.isdir(db_path) and db not in ['postgres']:
+        if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             
             data_backup_path = os.path.join(db_path, 'data')
             print(f"Restoring data for database: {db} from {data_backup_path}")
