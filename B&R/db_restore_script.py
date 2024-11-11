@@ -261,7 +261,7 @@ def main(namespace, backup_location):
                 restore_data_cmd = f"pg_restore -j{cpu_count} -v -c -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} \"{data_backup_path}\""
                 subprocess.run(restore_data_cmd, shell=True, check=True)
             except subprocess.CalledProcessError as e:
-                print(f"Warning: "Already exists or do not exist errors ignored on restore")
+                print(f"Warning: Already exists or do not exist errors ignored on restore")
             else:
                 print(f"Data backup path does not exist: {data_backup_path}")
 
