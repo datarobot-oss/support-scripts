@@ -140,7 +140,7 @@ def main(namespace, backup_location):
 
     tar_file = subprocess.check_output("ls *mongo-backup*.tar", shell=True).decode().strip()
 
-    subprocess.run(f"tar xf {tar_file} -C {backup_location}", shell=True, check=True)
+    subprocess.run(f"tar xf {tar_file}", shell=True, check=True)
 
     cleanup_mongodb(namespace)
 
