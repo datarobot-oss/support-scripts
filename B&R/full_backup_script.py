@@ -157,8 +157,11 @@ def main(namespace, backup_location):
     if port_forward_pid:
         os.kill(int(port_forward_pid), 15)
 
-    tar_cmd = f"tar -cf datarobot-mongo-backup-$(date +%F).tar -C {backup_location} mongodb"
-    subprocess.run(tar_cmd, shell=True, check=True)
+    current_date = datetime.now().strftime("%F")
+    mongo_backup_location = os.path.join(backup_location, "mongodb")
+    tar_file_path = os.path.join(backup_location, f"datarobot-mongo-backup-{current_date}.tar")
+    with tarfile.open(tar_file_path, "w") as tar:
+        tar.add(mongo_backup_location, arcname=os.path.basename(mongo_backup_location))
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
