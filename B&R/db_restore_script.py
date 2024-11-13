@@ -138,6 +138,8 @@ def main(namespace, backup_location):
     os.environ['LOCAL_MONGO_PORT'] = '27018'
     os.environ['LOCAL_PGSQL_PORT'] = '54321'
 
+    os.chdir(backup_location)
+    
     tar_file = subprocess.check_output("ls *mongo-backup*.tar", shell=True).decode().strip()
 
     subprocess.run(f"tar xf {tar_file}", shell=True, check=True)
