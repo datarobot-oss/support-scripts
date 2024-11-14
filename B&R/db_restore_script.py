@@ -155,7 +155,7 @@ def main(namespace, backup_location):
 
     cpu_count = os.cpu_count()
 
-    mongorestore_cmd = f"mongorestore -vv -j{cpu_count} --nsExclude=admin.system.users --nsExclude=config.system.preimages --nsExclude=config.system --nsExclude=MMApp.job_process --nsExclude=MMApp.queue --nsExclude=MMApp.qid_counter --nsExclude=MMApp.queue_monitor --nsExclude=MMApp.execute_kubeworkers_health_checks --nsExclude=MMApp.execute_base_docker_images --numInsertionWorkersPerCollection=6  -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} {backup_location}/mongodb"
+    mongorestore_cmd = f"mongorestore -vv -j{cpu_count} --nsExclude=admin.system.users --nsExclude=config.system.preimages --nsExclude=config.system --nsExclude=MMApp.job_process --nsExclude=MMApp.queue --nsExclude=MMApp.qid_counter --nsExclude=MMApp.queue_monitor --nsExclude=MMApp.execute_kubeworkers_health_checks --nsExclude=MMApp.execute_base_docker_images --numInsertionWorkersPerCollection=6  -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} mongodb"
     restore_process = subprocess.Popen(mongorestore_cmd, shell=True)
 
     while restore_process.poll() is None:
