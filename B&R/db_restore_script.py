@@ -214,7 +214,7 @@ def main(namespace, backup_location):
 
             cleanup_cmd_1 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} -c \"{clean_sql_command}\""
             cleanup_cmd_2 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} -c \"{clean_sql_command_2}\""
-    
+
             try:
                 subprocess.run(cleanup_cmd_1, shell=True, check=True)
                 print(f"Successfully cleaned up database: {db}")
@@ -227,6 +227,17 @@ def main(namespace, backup_location):
             except subprocess.CalledProcessError as e:
                 print(f"Error cleaning up partition tables in database {db}: {e}")
 
+    cleanup_sql_cmd_3 = """
+    SELECT pg_terminate_backend(pg_stat_activity.pid)
+    FROM pg_stat_activity
+    WHERE pg_stat_activity.datname = 'modmon'
+    AND pid <> pg_backend_pid();
+    """
+
+    cleanup_cmd_3 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d postgres -c \"{cleanup_sql_cmd_3}\""
+    cleanup_cmd_4 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d postgres -c \"drop database modmon\""
+    subprocess.run(cleanup_cmd_3, shell=True, check=True)
+    
     tar_file = None
     for file in os.listdir("pgsql"):
         if "pgsql" in file and file.endswith(".tar"):
