@@ -183,8 +183,8 @@ def main(namespace, backup_location):
             print("Waiting for PostgreSQL to be ready...")
             time.sleep(5)  # Check every 5 seconds
     tar_file = None
-    for db in os.listdir(os.path.join(backup_location, "pgsql")):
-        db_path = os.path.join(backup_location, "pgsql", db)
+    for db in os.listdir("pgsql"):
+        db_path = os.path.join("pgsql", db)
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             print(f"Cleaning up database: {db}")
 
@@ -228,9 +228,9 @@ def main(namespace, backup_location):
                 print(f"Error cleaning up partition tables in database {db}: {e}")
 
     tar_file = None
-    for file in os.listdir(os.path.join(backup_location, "pgsql")):
+    for file in os.listdir("pgsql"):
         if "pgsql" in file and file.endswith(".tar"):
-            tar_file = os.path.join(backup_location, "pgsql", file)
+            tar_file = os.path.join("pgsql", file)
             break
     
     if tar_file:
@@ -238,10 +238,10 @@ def main(namespace, backup_location):
     
         with tarfile.open(tar_file, "r") as tar:
             tar.extractall(path=os.path.join(backup_location, "pgsql"))
-            print(f"Extracted {tar_file} to {os.path.join(backup_location, 'pgsql')}")
+            print(f"Extracted {tar_file} to {os.path.join('pgsql')}")
     
-    for db in os.listdir(os.path.join(backup_location, "pgsql")):
-        db_path = os.path.join(backup_location, "pgsql", db)
+    for db in os.listdir("pgsql"):
+        db_path = os.path.join("pgsql", db)
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             
             data_backup_path = os.path.join(db_path, 'data')
