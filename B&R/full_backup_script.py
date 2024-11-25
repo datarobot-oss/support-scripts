@@ -45,6 +45,7 @@ import sys
 import time
 from datetime import datetime
 import tarfile
+import shutil
 
 def create_backup_directory(backup_location):
     os.makedirs(backup_location, exist_ok=True)
@@ -129,7 +130,7 @@ def backup_postgres(namespace, backup_location):
     tar_file_path = os.path.join(backup_location, f"pgsql-backup-{current_date}.tar")
     with tarfile.open(tar_file_path, "w") as tar:
         tar.add(pg_backup_location, arcname=os.path.basename(pg_backup_location))
-
+    shutil.rmtree(pg_backup_location)
 
 def main(namespace, backup_location):
     os.environ['NAMESPACE'] = namespace
@@ -162,6 +163,7 @@ def main(namespace, backup_location):
     tar_file_path = os.path.join(backup_location, f"datarobot-mongo-backup-{current_date}.tar")
     with tarfile.open(tar_file_path, "w") as tar:
         tar.add(mongo_backup_location, arcname=os.path.basename(mongo_backup_location))
+    shutil.rmtree(mongo_backup_location)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
