@@ -140,7 +140,7 @@ def main(namespace, backup_location):
 
     os.chdir(backup_location)
     
-    tar_file = subprocess.check_output("ls *mongo-backup*.tar", shell=True).decode().strip()
+    tar_file = subprocess.check_output("ls *datarobot-mongo-backup*.tar", shell=True).decode().strip()
 
     subprocess.run(f"tar xf {tar_file}", shell=True, check=True)
 
