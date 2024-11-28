@@ -198,28 +198,28 @@ def main(namespace, backup_location):
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             print(f"Cleaning up database: {db}")
 
-            check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d \| -f 1 | grep -qw {db}"
+            check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d | -f 1 | grep -qw {db}"
             db_exists = subprocess.run(check_db_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
             clean_sql_command = """
-            DO \$\$ DECLARE
+            DO $$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END \$\$;
+            END $$;
             """
     
             clean_sql_command_2 = """
-            DO \$\$ DECLARE
+            DO $$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = '_prediction_result_partitions') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END \$\$;
+            END $$;
             """
 
             cleanup_cmd_1 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} -c \"{clean_sql_command}\""
