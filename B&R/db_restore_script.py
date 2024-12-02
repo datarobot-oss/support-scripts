@@ -43,6 +43,7 @@ import time
 import logging
 import json
 import tarfile
+import shutil
 
 def extract_database_names(output):
     try:
@@ -183,33 +184,42 @@ def main(namespace, backup_location):
             print("Waiting for PostgreSQL to be ready...")
             time.sleep(5)  # Check every 5 seconds
     tar_file = None
+    for file in os.listdir():
+        if "pgsql" in file and file.endswith(".tar"):
+            tar_file = os.path.join(file)
+            break
+    if tar_file:
+        print(f"Found tar file: {tar_file}")
+        with tarfile.open(tar_file, "r") as tar:
+            tar.extractall(path=os.path.join(backup_location))
+            print(f"Extracted {tar_file} to {os.path.join('pgsql')}")
     for db in os.listdir("pgsql"):
         db_path = os.path.join("pgsql", db)
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
             print(f"Cleaning up database: {db}")
 
-            check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d \| -f 1 | grep -qw {db}"
+            check_db_cmd = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -lqt | cut -d | -f 1 | grep -qw {db}"
             db_exists = subprocess.run(check_db_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
             clean_sql_command = """
-            DO \$\$ DECLARE
+            DO $$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END \$\$;
+            END $$;
             """
     
             clean_sql_command_2 = """
-            DO \$\$ DECLARE
+            DO $$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = '_prediction_result_partitions') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END \$\$;
+            END $$;
             """
 
             cleanup_cmd_1 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} -c \"{clean_sql_command}\""
@@ -237,20 +247,7 @@ def main(namespace, backup_location):
     cleanup_cmd_3 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d postgres -c \"{cleanup_sql_cmd_3}\""
     cleanup_cmd_4 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d postgres -c \"drop database modmon\""
     subprocess.run(cleanup_cmd_3, shell=True, check=True)
-    
-    tar_file = None
-    for file in os.listdir("pgsql"):
-        if "pgsql" in file and file.endswith(".tar"):
-            tar_file = os.path.join("pgsql", file)
-            break
-    
-    if tar_file:
-        print(f"Found tar file: {tar_file}")
-    
-        with tarfile.open(tar_file, "r") as tar:
-            tar.extractall(path=os.path.join(backup_location, "pgsql"))
-            print(f"Extracted {tar_file} to {os.path.join('pgsql')}")
-    
+
     for db in os.listdir("pgsql"):
         db_path = os.path.join("pgsql", db)
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
@@ -267,6 +264,12 @@ def main(namespace, backup_location):
                 print(f"Warning: Already exists or do not exist errors ignored on restore")
             else:
                 print(f"Data backup path does not exist: {data_backup_path}")
+    shutil.rmtree(os.path.join(backup_location,'pgsql'))
+    print("'pgsql' directory removed after restore")
+    time.sleep(10)
+    shutil.rmtree(os.path.join(backup_location,'mongodb'))
+    print("'mongodb' directory removed after restore")
+    time.sleep(10)
 
 
 
