@@ -203,23 +203,23 @@ def main(namespace, backup_location):
 
 
             clean_sql_command = """
-            DO $$ DECLARE
+            DO \\$$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END $$;
+            END \\$$;
             """
     
             clean_sql_command_2 = """
-            DO $$ DECLARE
+            DO \\$$ DECLARE
                 r RECORD;
             BEGIN
                 FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = '_prediction_result_partitions') LOOP
                     EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.tablename) || ' CASCADE';
                 END LOOP;
-            END $$;
+            END \\$$;
             """
 
             cleanup_cmd_1 = f"psql -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} -c \"{clean_sql_command}\""
