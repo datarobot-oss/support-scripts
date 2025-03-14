@@ -130,6 +130,38 @@ def wait_for_mongodb(mongo_user, mongo_passwd):
             logging.info("Waiting for MongoDB to be ready...")
             time.sleep(5)
 
+def delete_pgsql_directory(backup_location):
+    print("\nCleanup the tar extracted backup directory 'pgsql'. Read below carefully and respond...! If you are not sure type 'no' when prompted")
+    time.sleep(5)
+    print("\n\n NOTE: This optional and if you don't have recent backup 'pgsql-backup-<DATE>.tar' file, don't delete 'pgsql' directory since it is the only backup..")
+    time.sleep(10)
+    print("\n\n If you want to delete 'pgsql' directory type 'yes' otherwise type 'no' in the below prompt.")
+    time.sleep(5)
+    confirmation = input(f"\n\nDo you want to delete the 'pgsql' directory  ? (yes/no): ").lower()
+    if confirmation == 'yes':
+        print("\nDeleting pgsql driectroy upon confirmation")
+        time.sleep(5)
+        shutil.rmtree(os.path.join(backup_location,'pgsql'))
+        print("\n'pgsql' directory removed after restore")
+    else:
+        print(f"Directory 'pgsql' was not deleted. Please handle it manually")
+
+def delete_mongodb_directory(backup_location):
+    print("\nCleanup the tar extracted backup directory 'mongodb'. Read below carefully and respond...! If you are not sure type 'no' when prompted.")
+    time.sleep(5)
+    print("\n\n NOTE: This optional and if you don't have recent backup 'datarobot-mongo-backup-<DATE>.tar' file, don't delete 'mongodb' directory since it is the only backup..")
+    time.sleep(10)
+    print("\n\n If you want to delete 'mongodb' directory type 'yes' otherwise type 'no' in the below prompt.")
+    time.sleep(5)
+    confirmation = input(f"\n\nDo you want to delete the 'mongodb' directory  ? (yes/no): ").lower()
+    if confirmation == 'yes':
+        print("\nDeleting mongodb driectroy upon confirmation")
+        time.sleep(5)
+        shutil.rmtree(os.path.join(backup_location,'mongodb'))
+        print("\n'mongodb' directory removed after restore")
+    else:
+        print(f"Directory 'mongodb' was not deleted. Please handle it manually")
+
 
 def main(namespace, backup_location):
     
@@ -264,14 +296,6 @@ def main(namespace, backup_location):
                 print(f"Warning: Already exists or do not exist errors ignored on restore")
             else:
                 print(f"Data backup path does not exist: {data_backup_path}")
-    shutil.rmtree(os.path.join(backup_location,'pgsql'))
-    print("'pgsql' directory removed after restore")
-    time.sleep(10)
-    shutil.rmtree(os.path.join(backup_location,'mongodb'))
-    print("'mongodb' directory removed after restore")
-    time.sleep(10)
-
-
 
     pg_port_forward_pid_cmd = f"ps aux | grep -E 'port-forwar[d].*{os.environ['LOCAL_PGSQL_PORT']}' | awk '{{print $2}}'"
     pg_port_forward_pid = subprocess.check_output(pg_port_forward_pid_cmd, shell=True).decode().strip()
@@ -289,3 +313,5 @@ if __name__ == "__main__":
     backup_location_arg = sys.argv[2]
 
     main(namespace_arg, backup_location_arg)
+    delete_pgsql_directory(backup_location_arg)
+    delete_mongodb_directory(backup_location_arg)

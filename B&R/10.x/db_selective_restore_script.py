@@ -25,11 +25,12 @@
 
 # Below script takes restore the following:
 
-# PostgreSQL
+# PostgreSQL or
 # MongoDB
-# Usage: Copy the script, please make sure to pass DR_NAMESPACE value as argument and the BACKUP_LOCATION which would be the backup directory that has been created to store backups
+# Usage: Copy the script, please make sure to pass DR_NAMESPACE value as argument, the BACKUP_LOCATION which would be the backup directory that has been created to store backups and postgres or mongodb as arguments for selective database varient to restore.
 
-# Example: db_restore_script.py my-test-namespace /datarobot-backup-location
+# Example: db_restore_script.py my-test-namespace /datarobot-backup-location postgres  # for PostgreSQL only restore
+#           db_restore_script.py my-test-namespace /datarobot-backup-location mongo     # for MongoDB only restore
 
 # Please note: This script does not restore any other components other than databases
 ####################################################################################################
@@ -44,11 +45,12 @@ import logging
 import json
 import tarfile
 import shutil
+import argparse
+
 
 def extract_database_names(output):
     try:
         json_line = next(line for line in output.strip().splitlines() if line.strip().startswith("["))
-        
         dbs = json.loads(json_line)
         db_names = [db['name'] for db in dbs]
         return db_names
@@ -101,7 +103,7 @@ def cleanup_mongodb(namespace):
 
         try:
             subprocess.run(
-                f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval \"{cleanup_script}\"',
+                f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=30000&authSource=admin" --eval \"{cleanup_script}\"',
                 shell=True,
                 check=True
             )
@@ -121,7 +123,7 @@ def wait_for_mongodb(mongo_user, mongo_passwd):
     while True:
         try:
             subprocess.check_output(
-                f'mongosh "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval "db.runCommand({{ ping: 1 }})"',
+                f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=30000&authSource=admin" --eval "db.runCommand({{ ping: 1 }})"',
                 shell=True
             )
             logging.info("MongoDB is ready to accept connections.")
@@ -131,7 +133,7 @@ def wait_for_mongodb(mongo_user, mongo_passwd):
             time.sleep(5)
 
 def delete_pgsql_directory(backup_location):
-    print("\nCleanup the unziped backup directory 'pgsql'. Read below carefully and respond. If you are not sure type 'no' when prompted. ")
+    print("\nCleanup the tar extracted backup directory 'pgsql'. Read below carefully and respond...! If you are not sure type 'no' when prompted. ")
     time.sleep(5)
     print("\n\n NOTE: This optional and if you don't have recent backup 'pgsql-backup-<DATE>.tar' file, don't delete 'pgsql' directory since it is the only backup..")
     time.sleep(10)
@@ -147,7 +149,7 @@ def delete_pgsql_directory(backup_location):
         print(f"Directory 'pgsql' was not deleted. Please handle it manually")
 
 def delete_mongodb_directory(backup_location):
-    print("\nCleanup the unziped backup directory 'mongodb'. Read below carefully and respond...! If you are not sure type 'no' when prompted.")
+    print("\nCleanup the tar extracted backup directory 'mongodb'. Read below carefully and respond...! If you are not sure type 'no' when prompted.")
     time.sleep(5)
     print("\n\n NOTE: This optional and if you don't have recent backup 'datarobot-mongo-backup-<DATE>.tar' file, don't delete 'mongodb' directory since it is the only backup..")
     time.sleep(10)
@@ -162,47 +164,53 @@ def delete_mongodb_directory(backup_location):
     else:
         print(f"Directory 'mongodb' was not deleted. Please handle it manually")
 
+def mongo_restore(namespace, backup_location):
 
-def main(namespace, backup_location):
-    
-    cleanup_mongodb(namespace)
+    print("Now only MongoDB being restored")
+    cleanup_mongodb(namespace)  # Ensure MongoDB is cleaned up first
     os.environ['NAMESPACE'] = namespace
     os.environ['BACKUP_LOCATION'] = backup_location
     os.environ['LOCAL_MONGO_PORT'] = '27018'
     os.environ['LOCAL_PGSQL_PORT'] = '54321'
 
     os.chdir(backup_location)
-    
+
     tar_file = subprocess.check_output("ls *datarobot-mongo-backup*.tar", shell=True).decode().strip()
 
     subprocess.run(f"tar xf {tar_file}", shell=True, check=True)
-
-    cleanup_mongodb(namespace)
 
     mongo_passwd_cmd = f"kubectl -n {namespace} get secret pcs-mongo -o jsonpath='{{.data.mongodb-root-password}}' | base64 -d"
     mongo_passwd = subprocess.check_output(mongo_passwd_cmd, shell=True).decode().strip()
     os.environ['MONGO_PASSWD'] = mongo_passwd
 
-    port_forward_mongo_cmd = f"kubectl -n {namespace} port-forward svc/pcs-mongo-headless --address 127.0.0.1 {os.environ['LOCAL_MONGO_PORT']}:27017 &"
-    subprocess.Popen(port_forward_mongo_cmd, shell=True)
+    #port_forward_mongo_cmd = f"kubectl -n {namespace} port-forward svc/pcs-mongo-headless --address 127.0.0.1 {os.environ['LOCAL_MONGO_PORT']}:27017 &"
+    #subprocess.Popen(port_forward_mongo_cmd, shell=True)
 
     cpu_count = os.cpu_count()
 
-    mongorestore_cmd = f"mongorestore -vv -j{cpu_count} --nsExclude=admin.system.users --nsExclude=config.system.preimages --nsExclude=config.system --nsExclude=MMApp.job_process --nsExclude=MMApp.queue --nsExclude=MMApp.qid_counter --nsExclude=MMApp.queue_monitor --nsExclude=MMApp.execute_kubeworkers_health_checks --nsExclude=MMApp.execute_base_docker_images --numInsertionWorkersPerCollection=6  -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} mongodb"
+    mongorestore_cmd = f"mongorestore -vv -j{cpu_count} --nsExclude=admin.system.users --nsExclude=config.system.preimages --nsExclude=config.system --numInsertionWorkersPerCollection=6  -u pcs-mongodb -p {mongo_passwd} -h 127.0.0.1 --port {os.environ['LOCAL_MONGO_PORT']} mongodb"
     restore_process = subprocess.Popen(mongorestore_cmd, shell=True)
 
     while restore_process.poll() is None:
-        time.sleep(300) 
+        time.sleep(100)  # Sleep for 5 minutes to avoid busy-waiting
 
+    # Cleanup port forwarding process
     mongo_port_forward_pid_cmd = f"ps aux | grep -E 'port-forwar[d].*{os.environ['LOCAL_MONGO_PORT']}' | awk '{{print $2}}'"
     mongo_port_forward_pid = subprocess.check_output(mongo_port_forward_pid_cmd, shell=True).decode().strip()
 
     if mongo_port_forward_pid:
         os.kill(int(mongo_port_forward_pid), 15)  # Send SIGTERM
 
+def postgres_restore(namespace, backup_location):
+    # Add logic for PostgreSQL restore here
+    print("Now only PostgreSQL being restored")
     pg_password_cmd = f"kubectl -n {namespace} get secret pcs-postgresql -o jsonpath='{{.data.postgres-password}}' | base64 -d"
     pg_password = subprocess.check_output(pg_password_cmd, shell=True).decode().strip()
     os.environ['PGPASSWORD'] = pg_password
+    os.environ['NAMESPACE'] = namespace
+    os.environ['BACKUP_LOCATION'] = backup_location
+    os.environ['LOCAL_MONGO_PORT'] = '27018'
+    os.environ['LOCAL_PGSQL_PORT'] = '54321'
 
     port_forward_pg_cmd = f"kubectl -n {namespace} port-forward svc/pcs-postgresql --address 127.0.0.1 {os.environ['LOCAL_PGSQL_PORT']}:5432 &"
     subprocess.Popen(port_forward_pg_cmd, shell=True)
@@ -243,7 +251,7 @@ def main(namespace, backup_location):
                 END LOOP;
             END \\$$;
             """
-    
+
             clean_sql_command_2 = """
             DO \\$$ DECLARE
                 r RECORD;
@@ -262,7 +270,7 @@ def main(namespace, backup_location):
                 print(f"Successfully cleaned up database: {db}")
             except subprocess.CalledProcessError as e:
                 print(f"Error cleaning up database {db}: {e}")
-    
+
             try:
                 subprocess.run(cleanup_cmd_2, shell=True, check=True)
                 print(f"Successfully cleaned up partition tables in database: {db}")
@@ -283,20 +291,19 @@ def main(namespace, backup_location):
     for db in os.listdir("pgsql"):
         db_path = os.path.join("pgsql", db)
         if os.path.isdir(db_path) and db not in ['postgres', 'sushihydra', 'identityresourceservice']:
-            
+
             data_backup_path = os.path.join(db_path, 'data')
             print(f"Restoring data for database: {db} from {data_backup_path}")
-               
+
             if os.path.exists(data_backup_path):
                 cpu_count = os.cpu_count()
             try:
-                restore_data_cmd = f"pg_restore -j{cpu_count} -v -c -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -d {db} \"{data_backup_path}\""
+                restore_data_cmd = f"pg_restore -j{cpu_count} -v -Upostgres -hlocalhost -p{os.environ['LOCAL_PGSQL_PORT']} -c -d {db} \"{data_backup_path}\""
                 subprocess.run(restore_data_cmd, shell=True, check=True)
             except subprocess.CalledProcessError as e:
                 print(f"Warning: Already exists or do not exist errors ignored on restore")
             else:
                 print(f"Data backup path does not exist: {data_backup_path}")
-
 
     pg_port_forward_pid_cmd = f"ps aux | grep -E 'port-forwar[d].*{os.environ['LOCAL_PGSQL_PORT']}' | awk '{{print $2}}'"
     pg_port_forward_pid = subprocess.check_output(pg_port_forward_pid_cmd, shell=True).decode().strip()
@@ -304,17 +311,33 @@ def main(namespace, backup_location):
     if pg_port_forward_pid:
         os.kill(int(pg_port_forward_pid), 15)
 
+def main():
+    # Initialize ArgumentParser
+    parser = argparse.ArgumentParser(description="Database Restore Script")
+
+    # Add arguments
+    parser.add_argument('namespace_arg', help="Please provide Kubernetes Namespace.")
+    parser.add_argument('backup_location_arg', help="Please provide backup location.")
+    parser.add_argument('db_to_be_restored', choices=['postgres', 'mongodb'], help="Database type (postgres or mongodb).")
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    # Print parsed arguments (optional)
+    print(f"Namespace: {args.namespace_arg}")
+    print(f"Backup Location: {args.backup_location_arg}")
+    print(f"Database to be restored: {args.db_to_be_restored}")
+
+    # Conditional logic for restoring MongoDB or PostgreSQL
+    if args.db_to_be_restored == 'mongodb':
+        mongo_restore(args.namespace_arg, args.backup_location_arg)
+        delete_mongodb_directory(args.backup_location_arg)
+    elif args.db_to_be_restored == 'postgres':
+        postgres_restore(args.namespace_arg, args.backup_location_arg)
+        delete_pgsql_directory(args.backup_location_arg)
+    else:
+        print("Please choose the database you would like to restore (mongo/postgres)")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python db_restore_script.py <NAMESPACE> <BACKUP_LOCATION>")
-        sys.exit(1)
-
-    namespace_arg = sys.argv[1]
-    backup_location_arg = sys.argv[2]
-
-    main(namespace_arg, backup_location_arg)
-
-    delete_pgsql_directory(backup_location_arg)
-    delete_mongodb_directory(backup_location_arg)
-
+    # Run the main function directly
+    main()
