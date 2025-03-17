@@ -30,7 +30,7 @@
 # Usage: Copy the script, please make sure to pass DR_NAMESPACE value as argument, the BACKUP_LOCATION which would be the backup directory that has been created to store backups and postgres or mongodb as arguments for selective database varient to restore.
 
 # Example: db_restore_script.py my-test-namespace /datarobot-backup-location postgres  # for PostgreSQL only restore
-#           db_restore_script.py my-test-namespace /datarobot-backup-location mongo     # for MongoDB only restore
+#           db_restore_script.py my-test-namespace /datarobot-backup-location mongodb     # for MongoDB only restore
 
 # Please note: This script does not restore any other components other than databases
 ####################################################################################################
@@ -336,7 +336,7 @@ def main():
         postgres_restore(args.namespace_arg, args.backup_location_arg)
         delete_pgsql_directory(args.backup_location_arg)
     else:
-        print("Please choose the database you would like to restore (mongo/postgres)")
+        print("Please choose the database you would like to restore (mongodb/postgres)")
 
 if __name__ == "__main__":
     # Run the main function directly
