@@ -73,7 +73,7 @@ def cleanup_mongodb(namespace):
 
     try:
         dbs_output = subprocess.check_output(
-            f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=30000&authSource=admin" --eval "JSON.stringify(db.getMongo().getDBs().databases)"',
+            f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ["LOCAL_MONGO_PORT"]}/?directConnection=true&serverSelectionTimeoutMS=30000&authSource=admin" --eval "JSON.stringify(db.getMongo().getDBs().databases)"',
             shell=True
         ).decode().strip()
 
@@ -101,7 +101,7 @@ def cleanup_mongodb(namespace):
 
         try:
             subprocess.run(
-                f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval \"{cleanup_script}\"',
+                f'mongosh  "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ["LOCAL_MONGO_PORT"]}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval \"{cleanup_script}\"',
                 shell=True,
                 check=True
             )
@@ -121,7 +121,7 @@ def wait_for_mongodb(mongo_user, mongo_passwd):
     while True:
         try:
             subprocess.check_output(
-                f'mongosh "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ['LOCAL_MONGO_PORT']}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval "db.runCommand({{ ping: 1 }})"',
+                f'mongosh "mongodb://{mongo_user}:{mongo_passwd}@localhost:{os.environ["LOCAL_MONGO_PORT"]}/?directConnection=true&serverSelectionTimeoutMS=20000&authSource=admin" --eval "db.runCommand({{ ping: 1 }})"',
                 shell=True
             )
             logging.info("MongoDB is ready to accept connections.")
