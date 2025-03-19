@@ -223,6 +223,7 @@ def postgres_restore(namespace, backup_location):
         except subprocess.CalledProcessError:
             print("Waiting for PostgreSQL to be ready...")
             time.sleep(5)  # Check every 5 seconds
+    os.chdir(backup_location)
     tar_file = None
     for file in os.listdir():
         if "pgsql" in file and file.endswith(".tar"):
