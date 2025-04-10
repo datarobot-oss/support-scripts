@@ -25,17 +25,21 @@ _Please note: This script does not take backups of custom certificates and elast
 
 ## Restore script usage guide
 
-**Full Restore script usage:** Copy the script, please make sure to pass `DR_NAMESPACE` value as argument and the `BACKUP_LOCATION` where the backups are stored
+**For Help:
+          `python full_db_restore_script.py --help`
 
-Example: `python3 db_restore_script.py <my-test-namespace> /datarobot-backup`
+**For Full Restore (Both MongoDB and PostgreSQL):** Copy the script, please make sure to pass `DR_NAMESPACE` value as argument and the `BACKUP_LOCATION` where the backups are stored
 
-**Selective Restore script usage:** If you want to restore database selectively i.e MongoDB or PostgreSQL please use db_selective_restore_script.py, make sure along withDR_NAMESPACEvalue as argument and theBACKUP_LOCATION` where the backups are stored please pass DB_TYPE_YOU_WANT_TO_RESTORE (mongodb or postgres) respectively.
+Example: `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location complete`
+
+**For selective DB Restore:** If you want to restore database selectively i.e MongoDB or PostgreSQL please use db_selective_restore_script.py, make sure along withDR_NAMESPACEvalue as argument and theBACKUP_LOCATION` where the backups are stored please pass DB_TYPE_YOU_WANT_TO_RESTORE (mongodb or postgres) respectively.
 
 Examples:
 
-for PostgreSQL restore `python3 db_selective_restore_script.py <my-test-namespace> /datarobot-backup postgres`
+for PostgreSQL only restore `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location postgres`
 
-for MongoDB restore `python3 db_selective_restore_script.py <my-test-namespace> /datarobot-backup mongodb`
+for MongoDB only restore `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location mongodb`
+
 
  Copy to host machine where k8s cluster is running
 ```
