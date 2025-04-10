@@ -26,19 +26,19 @@ _Please note: This script does not take backups of custom certificates and elast
 ## Restore script usage guide
 
 **For Help:**
-          `python full_db_restore_script.py --help`
+`python full_db_restore_script.py --help`
 
-**For Full Restore (Both MongoDB and PostgreSQL):** Copy the script, please make sure to pass `DR_NAMESPACE` value as argument and the `BACKUP_LOCATION` where the backups are stored
+**For Full Restore (Both MongoDB and PostgreSQL):** Copy the script, please make sure to pass `DR_NAMESPACE` value as a first argument and the `BACKUP_LOCATION` where the backups are stored as second argument and please pass `complete` as thired argument for both databases restore in single go.
 
 Example: `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location complete`
 
-**For selective DB Restore:** If you want to restore database selectively i.e MongoDB or PostgreSQL please use db_selective_restore_script.py, make sure along withDR_NAMESPACEvalue as argument and theBACKUP_LOCATION` where the backups are stored please pass DB_TYPE_YOU_WANT_TO_RESTORE (mongodb or postgres) respectively.
+**For selective DB Restore:** If you want to restore a database selectively i.e MongoDB or PostgreSQL please run full_db_restore_script.py with correct argument. Please make sure to pass `DR_NAMESPACE` value as a first argument, the `BACKUP_LOCATION` where the backups are stored as second argument and use `mongodb` or `postgres` as thired argument to restore specific database.
 
 Examples:
 
-for PostgreSQL only restore `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location postgres`
+for PostgreSQL only restore: `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location postgres`
 
-for MongoDB only restore `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location mongodb`
+for MongoDB only restore: `python full_db_restore_script.py my-test-namespace /absolute-datarobot-backup-location mongodb`
 
 
  Copy to host machine where k8s cluster is running
