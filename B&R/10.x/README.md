@@ -25,7 +25,7 @@ _Please note: This script does not take backups of custom certificates and elast
 
 ## Restore script usage guide
 
-**For Help:
+**For Help:**
           `python full_db_restore_script.py --help`
 
 **For Full Restore (Both MongoDB and PostgreSQL):** Copy the script, please make sure to pass `DR_NAMESPACE` value as argument and the `BACKUP_LOCATION` where the backups are stored
