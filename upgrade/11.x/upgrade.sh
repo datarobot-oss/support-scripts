@@ -136,7 +136,7 @@ if [[ $rabbitmq_image_tag == 3.12* ]]; then
   kubectl patch statefulset pcs-rabbitmq -n $NS --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/initContainers/0/image", "value":"docker.io/bitnami/rabbitmq:3.13.7"}]'
   kubectl scale statefulset pcs-rabbitmq --replicas=1 -n $NS
 fi
-FF=$(kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl -q list_feature_flags | grep stream_filtering" | awk '{print $2}')
+FF=$(kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl -q list_feature_flags | grep stream_filtering" | awk '{print $2}' | tr -d '\r\n')
 if [[ $FF == "disabled" ]]; then
   echo "Feature flag disabled"
   kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl enable_feature_flag all"
