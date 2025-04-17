@@ -137,11 +137,9 @@ if [[ $rabbitmq_image_tag == 3.12* ]]; then
   kubectl scale statefulset pcs-rabbitmq --replicas=1 -n $NS
 fi
 FF=$(kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl -q list_feature_flags | grep stream_filtering" | awk '{print $2}')
-if [[ $FF == "enabled" ]]; then
-  echo "Feature flag stream_filtering is enabled"
-else
-  echo "Feature flag stream_filtering is not enabled"
-  kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl set_feature_flag stream_filtering true"
+if [[ $FF == "disabled" ]]; then
+  echo "Feature flag disabled"
+  kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl enable_feature_flag all"
 fi
 
 scale_wait pcs-postgresql 3 $NS
