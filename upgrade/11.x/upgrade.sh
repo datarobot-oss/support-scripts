@@ -128,7 +128,21 @@ echo "- fix elasticsearch secret"
 NEWSECRET=$(openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 18 | base64)
 kubectl patch secret pcs-elasticsearch -n $NS -p "{\"data\":{\"elasticsearch-password\":\"$NEWSECRET\"}}"
 
-
+rabbitmq_image_tag=$(kubectl get statefulset pcs-rabbitmq -n $NS -o jsonpath='{.spec.template.spec.containers[0].image}' | awk -F: '{print $2}')
+if [[ $rabbitmq_image_tag == 3.12* ]]; then
+  echo "Image tag begins with 3.12 - no direct upgrade to 4.0.5"
+  kubectl scale statefulset pcs-rabbitmq --replicas=0 -n $NS
+  kubectl patch statefulset pcs-rabbitmq -n $NS --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/image", "value":"docker.io/bitnami/rabbitmq:3.13.7"}]'
+  kubectl patch statefulset pcs-rabbitmq -n $NS --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/initContainers/0/image", "value":"docker.io/bitnami/rabbitmq:3.13.7"}]'
+  kubectl scale statefulset pcs-rabbitmq --replicas=1 -n $NS
+fi
+FF=$(kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl -q list_feature_flags | grep stream_filtering" | awk '{print $2}')
+if [[ $FF == "enabled" ]]; then
+  echo "Feature flag stream_filtering is enabled"
+else
+  echo "Feature flag stream_filtering is not enabled"
+  kubectl exec -i -t -n $NS pcs-rabbitmq-0 -c rabbitmq -- bash -c "rabbitmqctl set_feature_flag stream_filtering true"
+fi
 
 scale_wait pcs-postgresql 3 $NS
 
