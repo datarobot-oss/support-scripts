@@ -42,19 +42,15 @@ def get_databases(connection):
 def get_table_info(connection):
     """Get table sizes and row counts for all tables in the public schema."""
     query = """
-    SELECT
-        c.relname AS table_name,
-        pg_size_pretty(pg_total_relation_size(c.oid)) AS size,
-        pg_total_relation_size(c.oid) / (current_setting('block_size')::integer / 1024) AS num_blocks,
-        s.n_live_tup AS num_rows
-    FROM
-        pg_class c
-    JOIN
-        pg_stat_user_tables s ON c.oid = s.relid
-    WHERE
-        c.relkind = 'r'  -- Only include ordinary tables
-    ORDER BY
-        pg_total_relation_size(c.oid) DESC;
+select table_schema, 
+       table_name, 
+       (xpath('/row/cnt/text()', xml_count))[1]::text::int as row_count
+from (
+  select table_name, table_schema, 
+         query_to_xml(format('select count(*) as cnt from %I.%I', table_schema, table_name), false, true, '') as xml_count
+  from information_schema.tables
+  where table_schema in ('public','_prediction_result_partitions')
+) t;
     """
     with connection.cursor() as cursor:
         cursor.execute(query)
@@ -86,7 +82,7 @@ def save_output_to_file(filename, databases):
             table_info = get_table_info(db_connection)
             output.append("Table Info:\n")
             for row in table_info:
-                if len(row) >= 4:  # Ensure we have all expected columns
+                if len(row) >= 3:  # Ensure we have all expected columns
                     output.append(f"{row}\n")
 
             # Get index count
@@ -111,47 +107,60 @@ def compare_files(pre_file, post_file):
     pre_tables = {}
     post_tables = {}
 
-    # Parse pre-upgrade file
     current_db = ""
+    collecting_tables = False
+
+    def parse_line(line):
+        """Helper to parse a line like: ('public', 'mytable', 123)"""
+        try:
+            parts = line.strip().strip("(),\n ").replace("'", "").split(", ")
+            if len(parts) >= 3:
+                schema = parts[0]
+                table = parts[1]
+                count = int(parts[2])
+                return schema, table, count
+        except Exception as e:
+            print(f"Failed to parse line: {line.strip()} — {e}")
+        return None, None, None
+
+    # Parse pre-upgrade file
     for line in pre_content:
         if line.startswith("Database:"):
             current_db = line.strip().split(":")[1].strip()
-        elif "Table Info:" in line or "Index Count:" in line:
-            continue
-        else:
-            parts = line.strip().strip("()").split(", ")
-            if len(parts) > 3:  # Ensure we have at least four elements
-                name = parts[0]
-                try:
-                    count = int(parts[3])  # num_rows
-                    pre_tables[(current_db, name)] = count
-                except (IndexError, ValueError) as e:
-                    print(f"Error parsing line in pre-upgrade file: {line.strip()} - {e}")
+        elif "Table Info:" in line:
+            collecting_tables = True
+        elif "Index Count:" in line:
+            collecting_tables = False
+        elif collecting_tables:
+            schema, table, count = parse_line(line)
+            if schema and table:
+                pre_tables[(current_db, schema, table)] = count
 
     # Parse post-upgrade file
     current_db = ""
+    collecting_tables = False
     for line in post_content:
         if line.startswith("Database:"):
             current_db = line.strip().split(":")[1].strip()
-        elif "Table Info:" in line or "Index Count:" in line:
-            continue
-        else:
-            parts = line.strip().strip("()").split(", ")
-            if len(parts) > 3:  # Ensure we have at least four elements
-                name = parts[0]
-                try:
-                    count = int(parts[3])  # num_rows
-                    post_tables[(current_db, name)] = count
-                except (IndexError, ValueError) as e:
-                    print(f"Error parsing line in post-upgrade file: {line.strip()} - {e}")
+        elif "Table Info:" in line:
+            collecting_tables = True
+        elif "Index Count:" in line:
+            collecting_tables = False
+        elif collecting_tables:
+            schema, table, count = parse_line(line)
+            if schema and table:
+                post_tables[(current_db, schema, table)] = count
 
     # Compare the two sets
     discrepancies = []
-    for (db, table), pre_count in pre_tables.items():
-        post_count = post_tables.get((db, table))
-        if post_count is not None and pre_count != post_count:
+    for key, pre_count in pre_tables.items():
+        post_count = post_tables.get(key)
+        if post_count is None:
+            discrepancies.append(f"Missing post-upgrade entry for {key}")
+        elif pre_count != post_count:
+            db, schema, table = key
             discrepancies.append(
-                f"Discrepancy in {db}.{table}: Pre-upgrade count {pre_count}, Post-upgrade count {post_count}"
+                f"Discrepancy in {db}.{schema}.{table}: Pre={pre_count}, Post={post_count}"
             )
 
     return discrepancies
